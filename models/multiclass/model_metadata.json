@@ -1,0 +1,19 @@
+{
+  "mode": "multiclass",
+  "class_names": [
+    "normal",
+    "overhang",
+    "underhang"
+  ],
+  "sample_rate": 16000,
+  "window_seconds": 3.0,
+  "n_mels": 128,
+  "n_fft": 1024,
+  "hop_length": 512,
+  "spectrogram_frames": 94,
+  "input_shape": [
+    128,
+    94,
+    1
+  ]
+}

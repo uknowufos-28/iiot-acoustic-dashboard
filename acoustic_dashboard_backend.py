@@ -13,12 +13,6 @@ import pandas as pd
 
 import acoustic_preprocessing as preprocessing
 
-try:
-    import tensorflow as tf
-except Exception:
-    tf = None
-
-
 CLASS_NAMES = {0: "Normal", 1: "Overhang fault", 2: "Underhang fault"}
 
 
@@ -35,10 +29,20 @@ class Prediction:
 def load_models(model_dir: str):
     folder = Path(model_dir)
     svm_path = folder / "svm_model.joblib"
-    cnn_path = folder / "cnn_model.keras"
     svm = joblib.load(svm_path) if svm_path.exists() else None
-    cnn = tf.keras.models.load_model(cnn_path) if tf is not None and cnn_path.exists() else None
-    return svm, cnn
+    return svm, None
+
+
+@lru_cache(maxsize=4)
+def load_cnn_model(model_dir: str):
+    model_path = Path(model_dir) / "cnn_model.keras"
+    if not model_path.exists():
+        raise FileNotFoundError(f"CNN model not found: {model_path}")
+    try:
+        import tensorflow as tf
+    except Exception as exc:
+        raise RuntimeError("CNN inference requires TensorFlow in this Python environment.") from exc
+    return tf.keras.models.load_model(model_path)
 
 
 def read_csv_signal(data: bytes) -> np.ndarray:

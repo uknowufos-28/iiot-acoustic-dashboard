@@ -12,7 +12,7 @@ import pandas as pd
 import streamlit as st
 
 import acoustic_preprocessing as preprocessing
-from acoustic_dashboard_backend import available_models, load_models, predict_signal, read_csv_signal
+from acoustic_dashboard_backend import available_models, load_cnn_model, load_models, predict_signal, read_csv_signal
 
 
 ROOT = Path(__file__).resolve().parent
@@ -37,23 +37,32 @@ if not MODEL_DIR.exists():
     st.stop()
 
 try:
-    svm_model, cnn_model = load_models(str(MODEL_DIR))
+    svm_model, _ = load_models(str(MODEL_DIR))
 except Exception as exc:
     st.error(f"Could not load the saved model: {exc}")
     st.stop()
 
 with st.sidebar:
     st.subheader("Analysis setup")
+    cnn_enabled = False
+    if (MODEL_DIR / "cnn_model.keras").exists():
+        cnn_enabled = st.toggle("Use CNN model", value=False, help="Loads the CNN model when enabled.")
+    try:
+        cnn_model = load_cnn_model(str(MODEL_DIR)) if cnn_enabled else None
+    except Exception as exc:
+        cnn_model = None
+        st.error(str(exc))
     model_choices = available_models(svm_model, cnn_model)
     if not model_choices:
         st.error("No usable model files were found.")
         st.stop()
     selected_model = st.selectbox("Model", model_choices, index=0)
     st.markdown("<span class='status-dot'></span>Model files loaded", unsafe_allow_html=True)
-    if cnn_model is None and (MODEL_DIR / "cnn_model.keras").exists():
-        st.caption("CNN support requires TensorFlow. The SVM remains available.")
+    if not cnn_enabled and (MODEL_DIR / "cnn_model.keras").exists():
+        st.caption("The CNN loads when selected. SVM is ready for analysis.")
     if st.button("Reload model files", use_container_width=True):
         load_models.cache_clear()
+        load_cnn_model.cache_clear()
         st.rerun()
     st.caption(f"Using `{MODEL_DIR.relative_to(ROOT)}`")
     st.divider()
