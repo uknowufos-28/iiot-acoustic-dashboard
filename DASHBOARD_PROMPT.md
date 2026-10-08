@@ -1,0 +1,7 @@
+# Dashboard build prompt
+
+Build a clean, operator-facing dashboard for this industrial gearbox acoustic anomaly project. Keep the frontend separate from the inference backend. Use the saved model artifacts and the exact preprocessing functions in `acoustic_preprocessing.py` so inference matches training. The current code and artifacts define three classes: Normal, Overhang and Underhang. The presentation describes a different binary Phase 1 configuration; do not show its metrics or binary labels as though they describe the current saved three-class models.
+
+The workflow is: microphone or acoustic sensor recording, numeric CSV waveform, 16 kHz mono input, 3 second analysis window, saved CNN or SVM inference, then a clear condition verdict and class scores. Let an operator upload a recording and select the model. Show the prediction, confidence, waveform and per-class scores. State clearly when no recording has been supplied. Do not invent live sensor data, machine status, alerts, timestamps, accuracy or performance metrics. Live microphone capture is not configured, so label that limitation plainly and keep the CSV workflow usable.
+
+Use a restrained industrial visual style with readable typography, neutral surfaces, muted teal accents and restrained amber/red fault states. Avoid generic AI imagery, gradients, excessive cards and promotional language. Make it work on typical laptop screens and keep labels understandable to maintenance operators.

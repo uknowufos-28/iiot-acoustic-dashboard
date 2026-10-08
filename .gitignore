@@ -1,0 +1,18 @@
+# Sensor recordings are local inputs and can be very large.
+/train images/
+
+# Python and local environment files
+__pycache__/
+*.py[cod]
+.venv/
+.venv*/
+venv/
+.env
+.env.*
+!.env.example
+
+# Local logs and temporary training output
+*.log
+tf_check.txt
+tf_exit.txt
+.streamlit/secrets.toml

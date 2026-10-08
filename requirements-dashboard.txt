@@ -1,0 +1,7 @@
+streamlit
+pandas
+numpy
+librosa
+joblib
+scikit-learn
+# Install tensorflow-cpu to enable the CNN option; SVM inference works without it.
