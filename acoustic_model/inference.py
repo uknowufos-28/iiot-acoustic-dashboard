@@ -9,7 +9,7 @@ import threading
 
 import numpy as np
 
-import acoustic_preprocessing as preprocessing
+from . import preprocessing
 
 
 CLASS_NAMES = ("Normal", "Overhang fault", "Underhang fault")

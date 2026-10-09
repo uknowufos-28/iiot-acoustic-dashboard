@@ -8,9 +8,9 @@ import json
 from pathlib import Path
 
 import numpy as np
-import tensorflow as tf
 
-import acoustic_preprocessing as preprocessing
+from acoustic_model import preprocessing
+from acoustic_model.inference import load_hybrid_model
 
 
 CLASS_NAMES = ["normal", "overhang", "underhang"]
@@ -19,7 +19,11 @@ CLASS_NAMES = ["normal", "overhang", "underhang"]
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("csv", type=Path, help="Numeric CSV; the first column is used")
-    parser.add_argument("--model", type=Path, default=Path("models/hybrid_multiclass/hybrid_model.h5"))
+    parser.add_argument(
+        "--model",
+        type=Path,
+        default=Path("models/hybrid_multiclass/hybrid_model.tflite"),
+    )
     parser.add_argument("--source-sample-rate", type=int, default=16_000)
     args = parser.parse_args()
 
@@ -33,8 +37,8 @@ def main() -> None:
     window = preprocessing.make_windows(signal)[0]
     spec = preprocessing.spectrogram_from_window(window)[np.newaxis, ..., np.newaxis]
 
-    model = tf.keras.models.load_model(args.model, compile=False)
-    scores = np.asarray(model.predict(spec, verbose=0))[0]
+    model = load_hybrid_model(str(args.model.resolve()))
+    scores = model.predict(spec)
     if scores.shape != (len(CLASS_NAMES),) or not np.isfinite(scores).all():
         raise ValueError(f"Unexpected hybrid model output: {scores}")
     winner = int(np.argmax(scores))

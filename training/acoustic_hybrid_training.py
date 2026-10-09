@@ -14,7 +14,7 @@ from sklearn.metrics import accuracy_score, classification_report, confusion_mat
 from sklearn.model_selection import train_test_split
 from sklearn.svm import LinearSVC
 
-import acoustic_preprocessing as preprocessing
+from acoustic_model import preprocessing
 
 
 CLASS_NAMES = ["normal", "overhang", "underhang"]

@@ -30,21 +30,29 @@ web/
   index.html                        Dashboard page
   styles.css                        Responsive visual design
   app.js                            API connection, CSV upload, plots and results
+acoustic_model/
+  preprocessing.py                  Shared signal and spectrogram preprocessing
+  inference.py                      TFLite model loading and window inference
+training/
+  acoustic_fault_training.py        Other acoustic classifier training pipeline
+  acoustic_hybrid_training.py       Integrated CNN + SVM training pipeline
 raspberry_pi/
   hybrid_api.py                     Authenticated Pi HTTP API
-hybrid_inference.py                 TFLite model loading and shared window inference
-acoustic_preprocessing.py           Shared signal and spectrogram preprocessing
-acoustic_hybrid_training.py         Integrated CNN + SVM training pipeline
-pi_hybrid_predict.py                Command-line hybrid inference
+  pi_hybrid_predict.py              Command-line hybrid inference
+  pi_svm_predict.py                 Existing standalone SVM utility
 models/hybrid_multiclass/
   hybrid_model.tflite               Raspberry Pi inference model
   hybrid_model.h5                   Verified Keras fallback
   model_metadata.json               Model inputs, classes and held-out metrics
 requirements-pi-hybrid.txt          Pi-side Python package list
+requirements-training.txt           Model training dependencies
 tests/test_hybrid_api.py            Pi API contract tests
+docs/raspberry-pi/
+  README.md                         Step-by-step setup and sensor notes
+  Raspberry_Pi_Hybrid_Model_Setup_Guide.pdf
 ```
 
-The older Streamlit interface has been retired. The existing training scripts and tracked historical artifacts remain separate from the Pages UI and Pi API.
+Python code is grouped into `acoustic_model/`, `training/`, and `raspberry_pi/`. The older Streamlit interface has been retired. The dataset and trained artifacts stay in their existing locations so the model workflow and saved paths remain stable.
 
 ## 1. Deploy the dashboard to GitHub Pages
 
@@ -108,6 +116,17 @@ pi-api.example.com {
 }
 ```
 
+## Train or test from the repository root
+
+Training and Pi utilities are Python packages now. Run them as modules from the repository root so their package imports and default data/model paths resolve correctly:
+
+```bash
+python -m training.acoustic_hybrid_training --source-sample-rate 16000 --epochs 20 --batch-size 32 --output-dir models/hybrid_multiclass
+python -m raspberry_pi.pi_hybrid_predict "path/to/recording.csv" --source-sample-rate 16000
+```
+
+These commands are for development or command-line testing; the deployed Pages dashboard sends recordings to the Pi API.
+
 ## 3. Test with a CSV recording
 
 Connect to the Pi API in the dashboard, enter the recording's actual sample rate, choose a headerless numeric CSV and select **Process on Raspberry Pi**. The API uses the first CSV column, resamples it to 16 kHz and returns one result per complete 3-second window. Any final segment shorter than 3 seconds is not analyzed.
@@ -150,11 +169,15 @@ No hardware driver, physical sensor connection, Raspberry Pi test, or Pi latency
 
 The integrated hybrid was evaluated on 1,120 held-out windows from disjoint recording-level splits. Its accuracy was **51.25%**. Recall was **12.0%** for normal, **49.9%** for overhang and **56.0%** for underhang. The low held-out performance means fault misses and false alarms are possible. Full metrics and the confusion matrix are in `models/hybrid_multiclass/model_metadata.json`.
 
+## Raspberry Pi integration guide
+
+For the complete step-by-step Pi setup, secure API configuration, dashboard connection, CSV validation, and remaining physical sensor integration work, see the [Raspberry Pi hybrid model setup guide](docs/raspberry-pi/README.md) or download the [PDF guide](docs/raspberry-pi/Raspberry_Pi_Hybrid_Model_Setup_Guide.pdf). Documentation is grouped in [`docs/`](docs/README.md).
+
 ## Validation commands
 
 Run the Raspberry Pi API contract tests and syntax checks from the repository root:
 
 ```bash
 python -m unittest discover -s tests -v
-python -m py_compile hybrid_inference.py raspberry_pi/hybrid_api.py
+python -m py_compile acoustic_model/*.py training/*.py raspberry_pi/*.py
 ```

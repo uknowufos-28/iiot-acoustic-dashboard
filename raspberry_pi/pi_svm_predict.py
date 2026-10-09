@@ -10,7 +10,7 @@ from pathlib import Path
 import joblib
 import numpy as np
 
-import acoustic_preprocessing as preprocessing
+from acoustic_model import preprocessing
 
 
 CLASS_NAMES = {0: "normal", 1: "overhang", 2: "underhang"}

@@ -16,7 +16,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 import numpy as np
 
-from hybrid_inference import analyze_signal, load_hybrid_model
+from acoustic_model.inference import analyze_signal, load_hybrid_model
 
 
 ROOT = Path(__file__).resolve().parents[1]

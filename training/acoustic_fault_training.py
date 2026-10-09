@@ -20,7 +20,7 @@ import json
 from pathlib import Path
 from typing import Dict, List, Tuple
 
-import acoustic_preprocessing as preprocessing
+from acoustic_model import preprocessing
 import joblib
 import numpy as np
 import tensorflow as tf

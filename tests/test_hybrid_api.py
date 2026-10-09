@@ -12,7 +12,7 @@ from unittest.mock import patch
 
 import numpy as np
 
-from hybrid_inference import WindowResult
+from acoustic_model.inference import WindowResult
 from raspberry_pi.hybrid_api import create_server
 
 
