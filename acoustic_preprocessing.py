@@ -1,4 +1,4 @@
-"""Audio preprocessing shared by model training and Raspberry Pi inference."""
+"""Shared preprocessing for training and dashboard inference."""
 
 from pathlib import Path
 
@@ -15,12 +15,24 @@ SPEC_FRAMES = 1 + WINDOW_SAMPLES // HOP_LENGTH
 
 
 def load_signal(csv_path: Path) -> np.ndarray:
-    signal = np.genfromtxt(csv_path, delimiter=",", dtype=np.float32)
+    # The bearing CSVs contain eight channels, but this pipeline uses only the
+    # verified first channel. Avoid converting the seven unused columns.
+    signal = np.genfromtxt(csv_path, delimiter=",", dtype=np.float32, usecols=0)
     if signal.size == 0:
         raise ValueError(f"CSV is empty: {csv_path}")
-    if signal.ndim == 1:
-        signal = signal.reshape(-1, 1)
-    return signal[:, 0].astype(np.float32)
+    signal = np.asarray(signal, dtype=np.float32).reshape(-1)
+    if not np.all(np.isfinite(signal)):
+        raise ValueError(f"CSV contains non-finite values in its first column: {csv_path}")
+    return signal
+
+
+def resample_signal(signal: np.ndarray, source_sr: int) -> np.ndarray:
+    if source_sr <= 0:
+        raise ValueError("Source sample rate must be a positive integer.")
+    values = signal.astype(np.float32)
+    if source_sr == TARGET_SR:
+        return values
+    return librosa.resample(values, orig_sr=source_sr, target_sr=TARGET_SR).astype(np.float32)
 
 
 def make_windows(signal: np.ndarray) -> list[np.ndarray]:
@@ -47,14 +59,28 @@ def spectrogram_from_window(window: np.ndarray) -> np.ndarray:
 
 def features_from_window(window: np.ndarray) -> np.ndarray:
     values = window.astype(np.float32)
-    mfcc = librosa.feature.mfcc(y=values, sr=TARGET_SR, n_mfcc=20, n_fft=N_FFT, hop_length=HOP_LENGTH)
-    zcr = librosa.feature.zero_crossing_rate(values, frame_length=N_FFT, hop_length=HOP_LENGTH)
+    mfcc = librosa.feature.mfcc(
+        y=values,
+        sr=TARGET_SR,
+        n_mfcc=20,
+        n_fft=N_FFT,
+        hop_length=HOP_LENGTH,
+    )
+    zcr = librosa.feature.zero_crossing_rate(
+        values,
+        frame_length=N_FFT,
+        hop_length=HOP_LENGTH,
+    )
     rms = librosa.feature.rms(y=values, frame_length=N_FFT, hop_length=HOP_LENGTH)
 
     mfcc_stats = []
     for band in mfcc:
         mean = np.mean(band)
-        mfcc_stats.extend([float(mean), float(np.var(band)), float(np.mean(np.abs(band - mean)))])
+        mfcc_stats.extend([
+            float(mean),
+            float(np.var(band)),
+            float(np.mean(np.abs(band - mean))),
+        ])
     zcr_stats = [float(np.mean(zcr)), float(np.var(zcr)), float(np.mean(np.abs(zcr - np.mean(zcr))))]
     rms_stats = [float(np.mean(rms)), float(np.var(rms)), float(np.mean(np.abs(rms - np.mean(rms))))]
     return np.asarray(mfcc_stats + zcr_stats + rms_stats, dtype=np.float32)

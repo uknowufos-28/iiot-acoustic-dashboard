@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#f3f6f4">
+    <meta name="description" content="Raspberry Pi hybrid CNN and SVM motor acoustic condition dashboard.">
+    <title>Motor Acoustic Monitor</title>
+    <link rel="stylesheet" href="./styles.css">
+    <script src="./app.js" defer></script>
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="brand" href="./" aria-label="Motor Acoustic Monitor home">
+        <span class="brand-mark" aria-hidden="true">II</span>
+        <span>
+          <strong>IIoT Monitor</strong>
+          <small>Motor acoustic condition</small>
+        </span>
+      </a>
+      <span id="connection-indicator" class="connection-indicator" data-state="offline">
+        <span class="indicator-dot" aria-hidden="true"></span>
+        <span id="connection-label">Pi not connected</span>
+      </span>
+    </header>
+
+    <main class="page-shell">
+      <section class="page-heading">
+        <p class="eyebrow">Integrated CNN + SVM · Raspberry Pi inference</p>
+        <h1>Motor acoustic monitor</h1>
+        <p class="lede">Send a recorded signal to the model service on the Pi and inspect its window-by-window result.</p>
+      </section>
+
+      <section class="notice notice-warning" aria-labelledby="model-limits-title">
+        <span class="notice-icon" aria-hidden="true">!</span>
+        <div>
+          <h2 id="model-limits-title">Experimental model — use for evaluation only</h2>
+          <p>
+            Held-out accuracy was 51.25%; recall was 12.0% for normal, 49.9% for overhang
+            and 56.0% for underhang. The model can miss faults and raise false alarms.
+            Do not use it as a safety interlock or replacement for inspection.
+          </p>
+        </div>
+      </section>
+
+      <div class="dashboard-grid">
+        <section class="panel setup-panel" aria-labelledby="connection-title">
+          <div class="panel-heading">
+            <span class="step-number">01</span>
+            <div>
+              <h2 id="connection-title">Connect to the Pi</h2>
+              <p>Enter the HTTPS address of the Pi API and its access token.</p>
+            </div>
+          </div>
+
+          <label for="api-base">Pi API HTTPS address</label>
+          <input id="api-base" type="url" inputmode="url" autocomplete="url"
+                 placeholder="https://pi-api.example.com" spellcheck="false">
+          <label for="api-token">API bearer token</label>
+          <input id="api-token" type="password" autocomplete="off"
+                 placeholder="Enter the token configured on the Pi">
+          <p class="field-hint">The token stays in this browser tab and is not embedded in this GitHub Pages site.</p>
+          <button id="connect-button" class="button button-secondary" type="button">Connect to Raspberry Pi</button>
+
+          <div class="divider"></div>
+          <div class="panel-heading">
+            <span class="step-number">02</span>
+            <div>
+              <h2>Analyze a recording</h2>
+              <p>CSV playback tests the complete model path before sensor hardware is selected.</p>
+            </div>
+          </div>
+          <label for="sample-rate">Recording sample rate (Hz)</label>
+          <input id="sample-rate" type="number" min="1000" max="384000" step="1" value="16000">
+          <label for="csv-file">Headerless numeric CSV</label>
+          <input id="csv-file" type="file" accept=".csv,text/csv" disabled>
+          <p class="field-hint">The first column is the signal. The sample rate must match the recording.</p>
+          <button id="analyze-button" class="button button-primary" type="button" disabled>Process on Raspberry Pi</button>
+          <p id="input-message" class="message" role="status" aria-live="polite"></p>
+        </section>
+
+        <section class="panel result-panel" aria-labelledby="latest-title">
+          <div class="panel-heading">
+            <span class="step-number">03</span>
+            <div>
+              <h2 id="latest-title">Latest model result</h2>
+              <p>Raw one-vs-rest SVM decision scores; these are not probabilities.</p>
+            </div>
+          </div>
+          <div id="result-empty" class="empty-state">
+            <span class="empty-icon" aria-hidden="true">◉</span>
+            <strong>Waiting for a recording</strong>
+            <span>Connect to the Pi, then upload a CSV or wait for the sensor service.</span>
+          </div>
+          <div id="result-content" hidden>
+            <div class="result-banner" id="result-banner" data-condition="unknown">
+              <span id="result-condition">No result</span>
+              <small id="result-time"></small>
+            </div>
+            <dl class="result-facts">
+              <div><dt>Windows processed</dt><dd id="window-count">—</dd></div>
+              <div><dt>Input sample rate</dt><dd id="result-rate">—</dd></div>
+              <div><dt>Source samples</dt><dd id="sample-count">—</dd></div>
+            </dl>
+            <p id="tail-note" class="field-hint"></p>
+          </div>
+
+          <div class="chart-block">
+            <div class="chart-heading">
+              <h3>Decision scores over time</h3>
+              <span>Higher score wins for each 3-second window</span>
+            </div>
+            <canvas id="score-chart" class="chart" aria-label="Raw SVM decision scores for each time window"></canvas>
+            <div class="legend" aria-hidden="true">
+              <span><i class="legend-normal"></i>Normal</span>
+              <span><i class="legend-overhang"></i>Overhang fault</span>
+              <span><i class="legend-underhang"></i>Underhang fault</span>
+            </div>
+          </div>
+
+          <div class="chart-block">
+            <div class="chart-heading">
+              <h3>Sensor signal</h3>
+              <span id="signal-caption">First CSV column</span>
+            </div>
+            <canvas id="signal-chart" class="chart chart-signal" aria-label="Sensor signal waveform"></canvas>
+          </div>
+
+          <div class="table-wrap">
+            <h3>Window-by-window results</h3>
+            <table>
+              <thead>
+                <tr>
+                  <th scope="col">Window</th>
+                  <th scope="col">Time</th>
+                  <th scope="col">Model class</th>
+                  <th scope="col">Normal</th>
+                  <th scope="col">Overhang</th>
+                  <th scope="col">Underhang</th>
+                </tr>
+              </thead>
+              <tbody id="result-rows">
+                <tr><td class="empty-table" colspan="6">No analyzed windows yet.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+
+      <section class="notice notice-info">
+        <span class="notice-icon" aria-hidden="true">i</span>
+        <div>
+          <h2>Live sensor capture is not configured</h2>
+          <p>
+            The Pi has no built-in analog input. Select the sensor interface/ADC first,
+            then add its acquisition driver to send 16 kHz sample windows to the Pi API.
+            The dashboard does not invent or simulate live sensor data.
+          </p>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <span>Hybrid model · 16 kHz processing · 3-second analysis windows</span>
+      <a href="https://github.com/uknowufos-28/iiot-acoustic-dashboard">Source repository</a>
+    </footer>
+  </body>
+</html>

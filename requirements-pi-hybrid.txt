@@ -1,0 +1,5 @@
+numpy
+librosa
+tflite-runtime
+# If pip has no compatible wheel, install a matching Lite runtime wheel manually.
+# tensorflow-cpu may be used as a larger fallback when a compatible Lite runtime is unavailable.

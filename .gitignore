@@ -15,4 +15,12 @@ venv/
 *.log
 tf_check.txt
 tf_exit.txt
-.streamlit/secrets.toml
+
+# Local model experiments are preserved on disk but not part of the hybrid release.
+/models/binary/
+/models/pi_candidate_multiclass/
+/models/pi_full_multiclass/
+
+# Local-only project assets and editor settings
+/.vscode/
+/Review2_AI_Acoustic_Anomaly_Detection_Gearboxes.pptx

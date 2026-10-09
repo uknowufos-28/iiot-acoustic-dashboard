@@ -1,0 +1,7 @@
+numpy
+scipy
+librosa
+pandas
+scikit-learn
+joblib
+tensorflow-cpu

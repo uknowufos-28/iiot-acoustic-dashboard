@@ -1,0 +1,7 @@
+# Match the training environment used for the joblib SVM artifact.
+# Use 64-bit Linux ARM and CPython 3.12 on the Raspberry Pi.
+numpy==2.5.3
+scipy==1.18.1
+scikit-learn==1.9.1
+joblib==1.6.0
+librosa==1.0.0
